@@ -216,6 +216,14 @@ class ServiceForGemma(unittest.TestCase):
         self.assertEqual(self.svc.call_format, "gemma")
         self.assertEqual(self.svc.stop_ids, {258, 256 + GemmaTokens.SPECIALS.index("<|tool_response>")})
 
+    def test_the_turn_end_stops_a_reply_when_the_gguf_names_only_eos(self):
+        # a finetune's GGUF (HauhauCS 1M) names eos and no eot: the reply still ends at <turn|>
+        class EosOnly(GemmaTokens):
+            special_ids = {"tokenizer.ggml.bos_token_id": 256, "tokenizer.ggml.eos_token_id": 1}
+        tok = EosOnly()
+        svc = Service(MockEngine(tok, "hi"), tok, ChatTemplate(Path(self.dir.name) / "chat_template.jinja"))
+        self.assertIn(256 + GemmaTokens.SPECIALS.index("<turn|>"), svc.stop_ids)
+
     def test_thinking_is_on_unless_asked_off_and_a_tool_is_wrapped(self):
         text, _ = self.prompt({"messages": self.ASKED[:1], "tools": self.TOOLS})
         self.assertEqual(text, "<bos><|turn>system\n<|think|><|tool>add<tool|><turn|>\n<|turn>user\n1+2?<turn|>\n"

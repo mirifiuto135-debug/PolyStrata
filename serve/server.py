@@ -2694,6 +2694,10 @@ class Service:
             # Its template opens the reasoning for it after a tool's answer; run() looks for that at the prompt's end
             answer = tokenizer.encode("<|tool_response>", parse_special=True)
             self.stop_ids |= set(answer if len(answer) == 1 else [])
+            # the end of its turn: a finetune's GGUF can name only <eos> (HauhauCS 1M: eos 1, no eot), and the reply
+            # then runs on past <turn|> until max_tokens (llama.cpp ends it by the token's text, like this)
+            turn_end = tokenizer.encode("<turn|>", parse_special=True)
+            self.stop_ids |= set(turn_end if len(turn_end) == 1 else [])
             self.think_open_ids = tokenizer.encode("<|channel>thought\n", parse_special=True)
         # an image in a prompt (prepare()): the token the template writes for it, which stands for each of its rows;
         # the token the template writes before that one, if it writes one; the tokens to put around the rows, if
